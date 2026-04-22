@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+
 # Scikit-learn
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
@@ -20,12 +21,13 @@ st.set_page_config(
     page_icon="📊",
     layout="wide"
 )
-
+pd.set_option('display.float_format', '{:.2f}'.format)
 st.title("📊 Prévision de la demande - Tableau de bord décisionnel")
 st.markdown("---")
 
+# ============================================================
 # TRAITEMENT DE DONNEES
-
+# ============================================================
 
 @st.cache_data
 def load_and_process_data(uploaded_file):
@@ -129,7 +131,27 @@ def prepare_company_data(df, entreprise):
     # Suppression des NaN
     df_company = df_company.dropna(subset=["DEMANDE_LAG1", "PRIX_MOYEN_LAG1", "MARKETING_LAG1"]).copy()
     
+    # Recalculer le stock réel par produit
+    df_company = calculate_real_stock_by_product(df_company)
+    
     return df_company
+
+
+def calculate_real_stock_by_product(df_company):
+    """Recalcule le stock réel par produit à partir des flux"""
+    
+    # Trier par produit et quart
+    df_sorted = df_company.sort_values(["CODE_PRODUIT", "QUART_SIMULATION"])
+    
+    # Calcul du stock réel
+    df_sorted["STOCK_REEL"] = df_sorted.groupby("CODE_PRODUIT", observed=False)["PRODUCTION_TOTALE"].cumsum()
+    df_sorted["STOCK_REEL"] = df_sorted["STOCK_REEL"] - df_sorted.groupby("CODE_PRODUIT", observed=False)["DEMANDE"].cumsum()
+    
+    # Ajouter le stock initial du premier quart
+    first_stock = df_sorted.groupby("CODE_PRODUIT", observed=False)["STOCK_INITIAL"].first()
+    df_sorted["STOCK_REEL"] = df_sorted["STOCK_REEL"] + df_sorted["CODE_PRODUIT"].map(first_stock)
+    
+    return df_sorted
 
 
 def train_and_predict(df_company, model_choice):
@@ -197,7 +219,7 @@ def train_and_predict(df_company, model_choice):
 
 
 def calculate_indicators(df_company, pred_prod):
-    """Calcule les indicateurs prévisionnels"""
+    """Calcule les indicateurs prévisionnels avec stock réel par produit"""
     
     # Prix moyen historique
     prix_moyen = (
@@ -209,13 +231,13 @@ def calculate_indicators(df_company, pred_prod):
     ).fillna(0)
     prix_moyen = prix_moyen[["CODE_PRODUIT", "PRIX_MOYEN_PREVISIONNEL"]]
     
-    # Stock disponible
+    # Stock réel par produit (dernier quart)
     last_round = df_company["QUART_SIMULATION"].max()
-    stock_last = df_company[df_company["QUART_SIMULATION"] == last_round].copy()
     stock_prod = (
-        stock_last.groupby("CODE_PRODUIT", as_index=False, observed=False)["STOCK_INITIAL"]
-        .max()
-        .rename(columns={"STOCK_INITIAL": "STOCK_DISPONIBLE"})
+        df_company[df_company["QUART_SIMULATION"] == last_round]
+        .groupby("CODE_PRODUIT", as_index=False, observed=False)["STOCK_REEL"]
+        .first()
+        .rename(columns={"STOCK_REEL": "STOCK_DISPONIBLE"})
     )
     
     # Coût unitaire moyen
@@ -235,6 +257,7 @@ def calculate_indicators(df_company, pred_prod):
         .rename(columns={"PREDICTION": "DEMANDE_PREVISIONNELLE"})
     )
     
+    indicateurs["STOCK_DISPONIBLE"] = indicateurs["STOCK_DISPONIBLE"].fillna(0)
     indicateurs["PRODUCTION_ESTIMEE"] = (indicateurs["DEMANDE_PREVISIONNELLE"] - indicateurs["STOCK_DISPONIBLE"]).clip(lower=0)
     indicateurs["CA_PREVISIONNEL"] = indicateurs["DEMANDE_PREVISIONNELLE"] * indicateurs["PRIX_MOYEN_PREVISIONNEL"]
     indicateurs["COUT_TOTAL_PREVISIONNEL"] = indicateurs["DEMANDE_PREVISIONNELLE"] * indicateurs["COUT_UNITAIRE_MOYEN"]
@@ -243,8 +266,9 @@ def calculate_indicators(df_company, pred_prod):
     return indicateurs
 
 
+# ============================================================
 # INTERFACE PRINCIPALE
-
+# ============================================================
 
 uploaded_file = st.file_uploader(
     "📁 Chargez les données",
@@ -288,9 +312,9 @@ if uploaded_file is not None:
     with col3:
         st.metric("Enregistrements", f"{len(df_company)}")
     
-   
+    # ============================================================
     # ANALYSE EXPLORATOIRE DE DONNEES
- 
+    # ============================================================
     
     st.markdown("---")
     st.header("📈 Analyse exploratoire")
@@ -328,12 +352,12 @@ if uploaded_file is not None:
         ax.set_ylabel("Ventes nettes")
         ax.set_title(f"Ventes par produit - Entreprise {entreprise}")
         ax.legend(title="Produit")
-        plt.tight_layout()
+        ax.ticklabel_format(style='plain', axis='y')
         st.pyplot(fig)
     
     with tab3:
         # Exclure les colonnes de lag
-        cols_a_exclure = ["DEMANDE_LAG1", "PRIX_MOYEN_LAG1", "MARKETING_LAG1", "TREND", "QUART_SIMULATION"]
+        cols_a_exclure = ["DEMANDE_LAG1", "PRIX_MOYEN_LAG1", "MARKETING_LAG1", "TREND", "QUART_SIMULATION", "STOCK_REEL"]
         
         # Séparer les colonnes numériques et catégorielles
         numeric_cols = df_company.select_dtypes(include=[np.number]).columns.tolist()
@@ -390,9 +414,40 @@ if uploaded_file is not None:
                     st.dataframe(corr_df.style.format({"Corrélation avec DEMANDE": "{:.3f}"}))
         else:
             st.info("Pas assez de variables numériques pour afficher la matrice de corrélation")
+        
+        # Évolution du stock réel par produit
+        st.subheader("📦 Évolution du stock réel par produit")
+        
+        stock_evolution = df_company.groupby(
+            ["QUART_SIMULATION", "CODE_PRODUIT"], observed=True
+        )["STOCK_REEL"].first().reset_index()
+        
+        fig, ax = plt.subplots(figsize=(12, 6))
+        for produit in stock_evolution["CODE_PRODUIT"].unique():
+            data = stock_evolution[stock_evolution["CODE_PRODUIT"] == produit]
+            ax.plot(data["QUART_SIMULATION"], data["STOCK_REEL"], 
+                    marker='o', linewidth=2, label=f"Produit {produit}")
+        
+        ax.set_xlabel("Quart de simulation")
+        ax.set_ylabel("Stock réel")
+        ax.set_title(f"Évolution du stock réel par produit - Entreprise {entreprise}")
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        ax.ticklabel_format(style='plain', axis='y')
+        st.pyplot(fig)
+        
+        # Tableau des stocks
+        st.subheader("Tableau des stocks réels par produit et par quart")
+        stock_pivot = stock_evolution.pivot(
+            index="QUART_SIMULATION", 
+            columns="CODE_PRODUIT", 
+            values="STOCK_REEL"
+        )
+        st.dataframe(stock_pivot.style.format("{:,.0f}"))
     
+    # ============================================================
     # MODÉLISATION
-    
+    # ============================================================
     
     st.markdown("---")
     st.header("🤖 Modélisation et prévisions")
@@ -423,8 +478,8 @@ if uploaded_file is not None:
         ax.set_xlabel("Demande réelle")
         ax.set_ylabel("Demande prédite")
         ax.set_title(f"Prédiction de la demande\nMAE = {mae:,.0f} | R² = {r2:.3f}")
-        ax.legend()
-        plt.tight_layout()
+        ax.legend(loc="upper left", bbox_to_anchor=(1,0.5))
+        fig.tight_layout()
         st.pyplot(fig)
         
         # Prédictions par produit
@@ -459,7 +514,7 @@ if uploaded_file is not None:
         
         st.dataframe(tableau_final.style.format({
             "DEMANDE_PREVISIONNELLE": "{:,.0f}",
-            "STOCK_DISPONIBLE": "{:,.2f}",
+            "STOCK_DISPONIBLE": "{:,.0f}",
             "PRODUCTION_ESTIMEE": "{:,.0f}",
             "PRIX_MOYEN_PREVISIONNEL": "{:.2f}",
             "CA_PREVISIONNEL": "{:,.2f}",
@@ -483,16 +538,15 @@ if uploaded_file is not None:
         plt.tight_layout()
         st.pyplot(fig)
         
-        
+        # ============================================================
         # GRAPHIQUES COMPARATIFS SUPPLEMENTAIRES
-        
+        # ============================================================
         
         # Graphique comparatif Demande vs Stock vs Prédiction
         st.subheader("📊 Comparaison Demande, Stock et Prédiction")
         
         # Préparer les données pour le graphique
         comparaison_df = tableau_final[["CODE_PRODUIT", "DEMANDE_PREVISIONNELLE", "STOCK_DISPONIBLE"]].copy()
-        comparaison_df["PREDICTION"] = comparaison_df["DEMANDE_PREVISIONNELLE"]
         
         # Ajouter la demande historique moyenne par produit
         demande_historique = (
@@ -518,8 +572,9 @@ if uploaded_file is not None:
         ax.set_ylabel("Quantité", fontsize=12)
         ax.set_title(f"Comparaison Demande vs Stock vs Prédiction - Entreprise {entreprise}", fontsize=14)
         ax.set_xticks(x)
+        ax.ticklabel_format(style='plain', axis='y')
         ax.set_xticklabels(comparaison_df["CODE_PRODUIT"])
-        ax.legend(loc="upper left", bbox_to_anchor=(1, 1))
+        ax.legend(loc="upper left", bbox_to_anchor=(1, 0.5))
         
         # Ajouter les valeurs sur les barres
         for bars in [bars1, bars2, bars3]:
@@ -541,29 +596,30 @@ if uploaded_file is not None:
         # Préparer les données temporelles
         temp_data = df_company.groupby("QUART_SIMULATION", as_index=False).agg({
             "DEMANDE": "sum",
-            "STOCK_INITIAL": "mean"
-        }).rename(columns={"STOCK_INITIAL": "STOCK_MOYEN"})
+            "STOCK_REEL": "sum"
+        }).rename(columns={"STOCK_REEL": "STOCK_TOTAL"})
         
         # Ajouter les prédictions pour le quart suivant
         last_quarter = temp_data["QUART_SIMULATION"].max()
         new_row = pd.DataFrame({
             "QUART_SIMULATION": [last_quarter + 1],
             "DEMANDE": [tableau_final["DEMANDE_PREVISIONNELLE"].sum()],
-            "STOCK_MOYEN": [tableau_final["STOCK_DISPONIBLE"].mean()]
+            "STOCK_TOTAL": [tableau_final["STOCK_DISPONIBLE"].sum()]
         })
         temp_data = pd.concat([temp_data, new_row], ignore_index=True)
         
         fig2, ax2 = plt.subplots(figsize=(12, 6))
         ax2.plot(temp_data["QUART_SIMULATION"], temp_data["DEMANDE"], 
                  marker='o', linewidth=2, markersize=8, label="Demande totale", color="blue")
-        ax2.plot(temp_data["QUART_SIMULATION"], temp_data["STOCK_MOYEN"], 
-                 marker='s', linewidth=2, markersize=8, label="Stock moyen", color="orange")
+        ax2.plot(temp_data["QUART_SIMULATION"], temp_data["STOCK_TOTAL"], 
+                 marker='s', linewidth=2, markersize=8, label="Stock total", color="orange")
         ax2.axvline(x=last_quarter + 0.5, color='red', linestyle='--', alpha=0.7, 
                     label="Zone de prédiction")
         
         ax2.set_xlabel("Quart de simulation", fontsize=12)
         ax2.set_ylabel("Quantité", fontsize=12)
         ax2.set_title(f"Évolution de la demande et du stock - Entreprise {entreprise}", fontsize=14)
+        
         ax2.legend()
         ax2.grid(True, alpha=0.3)
         
@@ -572,10 +628,10 @@ if uploaded_file is not None:
             ax2.annotate(f'{int(row["DEMANDE"]):,}', 
                         (row["QUART_SIMULATION"], row["DEMANDE"]),
                         textcoords="offset points", xytext=(0, 10), ha='center', fontsize=9)
-            ax2.annotate(f'{int(row["STOCK_MOYEN"]):,}', 
-                        (row["QUART_SIMULATION"], row["STOCK_MOYEN"]),
+            ax2.annotate(f'{int(row["STOCK_TOTAL"]):,}', 
+                        (row["QUART_SIMULATION"], row["STOCK_TOTAL"]),
                         textcoords="offset points", xytext=(0, -15), ha='center', fontsize=9)
-        
+        ax2.ticklabel_format(style='plain', axis='y')
         plt.tight_layout()
         st.pyplot(fig2)
         
@@ -605,13 +661,4 @@ if uploaded_file is not None:
 
 else:
     st.info(" Veuillez charger le fichier pour commencer l'analyse")
-    st.markdown("""
-    ### 📋 Structure attendue du fichier
     
-    Le fichier Excel doit contenir les feuilles suivantes :
-    - **Sales** - Données de ventes
-    - **Production** - Données de production
-    - **Inventory** - Données d'inventaire
-    - **Market** - Données de marché
-    - **Marketing_Expenses** - Dépenses marketing
-    """)
