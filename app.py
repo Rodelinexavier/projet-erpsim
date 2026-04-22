@@ -24,7 +24,9 @@ st.set_page_config(
 st.title("📊 Prévision de la demande - Tableau de bord décisionnel")
 st.markdown("---")
 
-#  TRAITEMENT DE DONNEES
+# TRAITEMENT DE DONNEES
+
+
 @st.cache_data
 def load_and_process_data(uploaded_file):
     """Charge et agrège toutes les tables"""
@@ -37,24 +39,24 @@ def load_and_process_data(uploaded_file):
     # Agrégation ventes
     ventes_agg = (ventes
         .groupby(["SIM_ROUND", "SALES_ORGANIZATION", "MATERIAL_CODE", 
-        "DISTRIBUTION_CHANNEL", "AREA", "NET_PRICE", 
-        "NET_VALUE", "COST", "QUANTITY_DELIVERED", 
-        "CONTRIBUTION_MARGIN", "MATERIAL_DESCRIPTION"],
-        as_index=False)["QUANTITY"]
+                  "DISTRIBUTION_CHANNEL", "AREA", "NET_PRICE", 
+                  "NET_VALUE", "COST", "QUANTITY_DELIVERED", 
+                  "CONTRIBUTION_MARGIN", "MATERIAL_DESCRIPTION"],
+                 as_index=False)["QUANTITY"]
         .sum()
         .rename(columns={
-        "SIM_ROUND": "QUART_SIMULATION",
-        "SALES_ORGANIZATION": "ENTREPRISE",
-        "MATERIAL_CODE": "CODE_PRODUIT",
-        "DISTRIBUTION_CHANNEL": "CANAL_DISTRIBUTION",
-        "AREA": "ZONE_GEOGRAPHIQUE",
-        "NET_PRICE": "PRIX_NET",
-        "NET_VALUE": "VENTES_NETTES",
-        "COST": "COUT",
-        "CONTRIBUTION_MARGIN": "MARGE_CONTRIBUTIVE",
-        "MATERIAL_DESCRIPTION": "NOM_PRODUIT",
-        "QUANTITY": "DEMANDE"
-    })
+            "SIM_ROUND": "QUART_SIMULATION",
+            "SALES_ORGANIZATION": "ENTREPRISE",
+            "MATERIAL_CODE": "CODE_PRODUIT",
+            "DISTRIBUTION_CHANNEL": "CANAL_DISTRIBUTION",
+            "AREA": "ZONE_GEOGRAPHIQUE",
+            "NET_PRICE": "PRIX_NET",
+            "NET_VALUE": "VENTES_NETTES",
+            "COST": "COUT",
+            "CONTRIBUTION_MARGIN": "MARGE_CONTRIBUTIVE",
+            "MATERIAL_DESCRIPTION": "NOM_PRODUIT",
+            "QUANTITY": "DEMANDE"
+        })
     )
     
     # Agrégation production
@@ -241,9 +243,8 @@ def calculate_indicators(df_company, pred_prod):
     return indicateurs
 
 
-# ============================================================
 # INTERFACE PRINCIPALE
-# ============================================================
+
 
 uploaded_file = st.file_uploader(
     "📁 Chargez les données",
@@ -287,8 +288,9 @@ if uploaded_file is not None:
     with col3:
         st.metric("Enregistrements", f"{len(df_company)}")
     
-    
+   
     # ANALYSE EXPLORATOIRE DE DONNEES
+ 
     
     st.markdown("---")
     st.header("📈 Analyse exploratoire")
@@ -330,69 +332,68 @@ if uploaded_file is not None:
         st.pyplot(fig)
     
     with tab3:
-    # Exclure les colonnes de lag
-        cols_a_exclure = ["DEMANDE_LAG1", "PRIX_MOYEN_LAG1", "MARKETING_LAG1","TREND","QUART_SIMULATION"]
-    
-    # Séparer les colonnes numériques et catégorielles
-    numeric_cols = df_company.select_dtypes(include=[np.number]).columns.tolist()
-    categorical_cols = df_company.select_dtypes(include=["object", "category"]).columns.tolist()
-    
-    # Filtrer les colonnes numériques pour exclure les lags
-    numeric_cols_filtered = [col for col in numeric_cols if col not in cols_a_exclure]
-    df_num_stats = df_company[numeric_cols_filtered].copy()
-    
-    # Statistiques descriptives - variables numériques
-    st.subheader("📊 Statistiques descriptives (variables numériques)")
-    if len(df_num_stats.columns) > 0:
-        st.dataframe(df_num_stats.describe().round(2))
-    else:
-        st.info("Aucune variable numérique à afficher")
-    
-    # Statistiques pour les variables catégorielles
-    st.subheader("📋 Statistiques (variables catégorielles)")
-    if len(categorical_cols) > 0:
-        df_cat_stats = df_company[categorical_cols].describe()
-        st.dataframe(df_cat_stats)
-    else:
-        st.info("Aucune variable catégorielle à afficher")
-    
-    # Corrélation - uniquement sur les colonnes numériques
-    if len(df_num_stats.columns) > 1:
-        st.subheader("📈 Matrice de corrélation")
-        fig, ax = plt.subplots(figsize=(10, 8))
-        corr_matrix = df_num_stats.corr().round(2)
+        # Exclure les colonnes de lag
+        cols_a_exclure = ["DEMANDE_LAG1", "PRIX_MOYEN_LAG1", "MARKETING_LAG1", "TREND", "QUART_SIMULATION"]
         
+        # Séparer les colonnes numériques et catégorielles
+        numeric_cols = df_company.select_dtypes(include=[np.number]).columns.tolist()
+        categorical_cols = df_company.select_dtypes(include=["object", "category"]).columns.tolist()
         
-        sns.heatmap(
-            corr_matrix, 
-            annot=True, 
-            cmap="coolwarm", 
-            ax=ax,
-            fmt='.2f',
-            square=True,
-            linewidths=0.5,
-            #mask=mask,
-            cbar_kws={"shrink": 0.8}
-        )
-        ax.set_title(f"Matrice de corrélation - Entreprise {entreprise}", fontsize=12)
-        plt.tight_layout()
-        st.pyplot(fig)
+        # Filtrer les colonnes numériques pour exclure les lags
+        numeric_cols_filtered = [col for col in numeric_cols if col not in cols_a_exclure]
+        df_num_stats = df_company[numeric_cols_filtered].copy()
         
-        # Afficher les corrélations les plus fortes avec DEMANDE
-        if "DEMANDE" in df_num_stats.columns:
-            st.subheader("🎯 Corrélations avec la demande")
-            corr_with_demand = df_num_stats.corr()["DEMANDE"].drop("DEMANDE").sort_values(ascending=False)
-            if len(corr_with_demand) > 0:
-                corr_df = pd.DataFrame({
-                    "Variable": corr_with_demand.index,
-                    "Corrélation avec DEMANDE": corr_with_demand.values
-                })
-                st.dataframe(corr_df.style.format({"Corrélation avec DEMANDE": "{:.3f}"}))
-    else:
-        st.info("Pas assez de variables numériques pour afficher la matrice de corrélation")
-   
+        # Statistiques descriptives - variables numériques
+        st.subheader("📊 Statistiques descriptives (variables numériques)")
+        if len(df_num_stats.columns) > 0:
+            st.dataframe(df_num_stats.describe().round(2))
+        else:
+            st.info("Aucune variable numérique à afficher")
+        
+        # Statistiques pour les variables catégorielles
+        st.subheader("📋 Statistiques (variables catégorielles)")
+        if len(categorical_cols) > 0:
+            df_cat_stats = df_company[categorical_cols].describe()
+            st.dataframe(df_cat_stats)
+        else:
+            st.info("Aucune variable catégorielle à afficher")
+        
+        # Corrélation - uniquement sur les colonnes numériques
+        if len(df_num_stats.columns) > 1:
+            st.subheader("📈 Matrice de corrélation")
+            fig, ax = plt.subplots(figsize=(10, 8))
+            corr_matrix = df_num_stats.corr().round(2)
+            
+            sns.heatmap(
+                corr_matrix, 
+                annot=True, 
+                cmap="coolwarm", 
+                ax=ax,
+                fmt='.2f',
+                square=True,
+                linewidths=0.5,
+                cbar_kws={"shrink": 0.8}
+            )
+            ax.set_title(f"Matrice de corrélation - Entreprise {entreprise}", fontsize=12)
+            plt.tight_layout()
+            st.pyplot(fig)
+            
+            # Afficher les corrélations les plus fortes avec DEMANDE
+            if "DEMANDE" in df_num_stats.columns:
+                st.subheader("🎯 Corrélations avec la demande")
+                corr_with_demand = df_num_stats.corr()["DEMANDE"].drop("DEMANDE").sort_values(ascending=False)
+                if len(corr_with_demand) > 0:
+                    corr_df = pd.DataFrame({
+                        "Variable": corr_with_demand.index,
+                        "Corrélation avec DEMANDE": corr_with_demand.values
+                    })
+                    st.dataframe(corr_df.style.format({"Corrélation avec DEMANDE": "{:.3f}"}))
+        else:
+            st.info("Pas assez de variables numériques pour afficher la matrice de corrélation")
+    
     # MODÉLISATION
-   
+    
+    
     st.markdown("---")
     st.header("🤖 Modélisation et prévisions")
     
@@ -482,6 +483,117 @@ if uploaded_file is not None:
         plt.tight_layout()
         st.pyplot(fig)
         
+        
+        # GRAPHIQUES COMPARATIFS SUPPLEMENTAIRES
+        
+        
+        # Graphique comparatif Demande vs Stock vs Prédiction
+        st.subheader("📊 Comparaison Demande, Stock et Prédiction")
+        
+        # Préparer les données pour le graphique
+        comparaison_df = tableau_final[["CODE_PRODUIT", "DEMANDE_PREVISIONNELLE", "STOCK_DISPONIBLE"]].copy()
+        comparaison_df["PREDICTION"] = comparaison_df["DEMANDE_PREVISIONNELLE"]
+        
+        # Ajouter la demande historique moyenne par produit
+        demande_historique = (
+            df_company.groupby("CODE_PRODUIT", as_index=False, observed=False)["DEMANDE"]
+            .mean()
+            .rename(columns={"DEMANDE": "DEMANDE_HISTORIQUE_MOYENNE"})
+        )
+        comparaison_df = comparaison_df.merge(demande_historique, on="CODE_PRODUIT", how="left")
+        
+        # Graphique en barres groupées
+        fig, ax = plt.subplots(figsize=(12, 7))
+        x = range(len(comparaison_df["CODE_PRODUIT"]))
+        width = 0.25
+        
+        bars1 = ax.bar([i - width for i in x], comparaison_df["DEMANDE_HISTORIQUE_MOYENNE"], 
+                       width, label="Demande historique moyenne", color="skyblue", edgecolor="black")
+        bars2 = ax.bar(x, comparaison_df["STOCK_DISPONIBLE"], 
+                       width, label="Stock disponible", color="orange", edgecolor="black")
+        bars3 = ax.bar([i + width for i in x], comparaison_df["DEMANDE_PREVISIONNELLE"], 
+                       width, label="Demande prévisionnelle", color="green", edgecolor="black")
+        
+        ax.set_xlabel("Produit", fontsize=12)
+        ax.set_ylabel("Quantité", fontsize=12)
+        ax.set_title(f"Comparaison Demande vs Stock vs Prédiction - Entreprise {entreprise}", fontsize=14)
+        ax.set_xticks(x)
+        ax.set_xticklabels(comparaison_df["CODE_PRODUIT"])
+        ax.legend(loc="upper left", bbox_to_anchor=(1, 1))
+        
+        # Ajouter les valeurs sur les barres
+        for bars in [bars1, bars2, bars3]:
+            for bar in bars:
+                height = bar.get_height()
+                if height > 0:
+                    ax.annotate(f'{int(height):,}',
+                               xy=(bar.get_x() + bar.get_width() / 2, height),
+                               xytext=(0, 3),
+                               textcoords="offset points",
+                               ha='center', va='bottom', fontsize=9, rotation=45)
+        
+        plt.tight_layout()
+        st.pyplot(fig)
+        
+        # Graphique en courbes pour l'évolution temporelle
+        st.subheader("📈 Évolution temporelle - Demande vs Stock")
+        
+        # Préparer les données temporelles
+        temp_data = df_company.groupby("QUART_SIMULATION", as_index=False).agg({
+            "DEMANDE": "sum",
+            "STOCK_INITIAL": "mean"
+        }).rename(columns={"STOCK_INITIAL": "STOCK_MOYEN"})
+        
+        # Ajouter les prédictions pour le quart suivant
+        last_quarter = temp_data["QUART_SIMULATION"].max()
+        new_row = pd.DataFrame({
+            "QUART_SIMULATION": [last_quarter + 1],
+            "DEMANDE": [tableau_final["DEMANDE_PREVISIONNELLE"].sum()],
+            "STOCK_MOYEN": [tableau_final["STOCK_DISPONIBLE"].mean()]
+        })
+        temp_data = pd.concat([temp_data, new_row], ignore_index=True)
+        
+        fig2, ax2 = plt.subplots(figsize=(12, 6))
+        ax2.plot(temp_data["QUART_SIMULATION"], temp_data["DEMANDE"], 
+                 marker='o', linewidth=2, markersize=8, label="Demande totale", color="blue")
+        ax2.plot(temp_data["QUART_SIMULATION"], temp_data["STOCK_MOYEN"], 
+                 marker='s', linewidth=2, markersize=8, label="Stock moyen", color="orange")
+        ax2.axvline(x=last_quarter + 0.5, color='red', linestyle='--', alpha=0.7, 
+                    label="Zone de prédiction")
+        
+        ax2.set_xlabel("Quart de simulation", fontsize=12)
+        ax2.set_ylabel("Quantité", fontsize=12)
+        ax2.set_title(f"Évolution de la demande et du stock - Entreprise {entreprise}", fontsize=14)
+        ax2.legend()
+        ax2.grid(True, alpha=0.3)
+        
+        # Ajouter les valeurs sur les points
+        for i, row in temp_data.iterrows():
+            ax2.annotate(f'{int(row["DEMANDE"]):,}', 
+                        (row["QUART_SIMULATION"], row["DEMANDE"]),
+                        textcoords="offset points", xytext=(0, 10), ha='center', fontsize=9)
+            ax2.annotate(f'{int(row["STOCK_MOYEN"]):,}', 
+                        (row["QUART_SIMULATION"], row["STOCK_MOYEN"]),
+                        textcoords="offset points", xytext=(0, -15), ha='center', fontsize=9)
+        
+        plt.tight_layout()
+        st.pyplot(fig2)
+        
+        # Tableau récapitulatif
+        st.subheader("📋 Tableau récapitulatif par produit")
+        recap_df = comparaison_df[["CODE_PRODUIT", "DEMANDE_HISTORIQUE_MOYENNE", 
+                                   "STOCK_DISPONIBLE", "DEMANDE_PREVISIONNELLE"]].copy()
+        recap_df["BESOIN_NET"] = (recap_df["DEMANDE_PREVISIONNELLE"] - recap_df["STOCK_DISPONIBLE"]).clip(lower=0)
+        recap_df["%_COUVERTURE_STOCK"] = (recap_df["STOCK_DISPONIBLE"] / recap_df["DEMANDE_PREVISIONNELLE"] * 100).round(1)
+        
+        st.dataframe(recap_df.style.format({
+            "DEMANDE_HISTORIQUE_MOYENNE": "{:,.0f}",
+            "STOCK_DISPONIBLE": "{:,.0f}",
+            "DEMANDE_PREVISIONNELLE": "{:,.0f}",
+            "BESOIN_NET": "{:,.0f}",
+            "%_COUVERTURE_STOCK": "{:.1f}%"
+        }).background_gradient(subset=["%_COUVERTURE_STOCK"], cmap="RdYlGn"))
+        
         # Export
         csv = tableau_final.to_csv(index=False).encode("utf-8")
         st.download_button(
@@ -491,3 +603,15 @@ if uploaded_file is not None:
             "text/csv"
         )
 
+else:
+    st.info(" Veuillez charger le fichier pour commencer l'analyse")
+    st.markdown("""
+    ### 📋 Structure attendue du fichier
+    
+    Le fichier Excel doit contenir les feuilles suivantes :
+    - **Sales** - Données de ventes
+    - **Production** - Données de production
+    - **Inventory** - Données d'inventaire
+    - **Market** - Données de marché
+    - **Marketing_Expenses** - Dépenses marketing
+    """)
