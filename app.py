@@ -28,9 +28,8 @@ st.title("📊 Prévision de la demande - Tableau de bord décisionnel")
 st.markdown("---")
 
 
-# ============================================================
 # CHARGEMENT ET PREPARATION DES DONNEES
-# ============================================================
+
 
 @st.cache_data
 def load_and_process_data(uploaded_file) -> pd.DataFrame:
@@ -543,8 +542,6 @@ if uploaded_file is not None:
         ax.set_title(f"Ventes par produit - Entreprise {entreprise}")
         ax.legend(title="Produit", loc="upper left", bbox_to_anchor=(1, 0.5))
         ax.ticklabel_format(style="plain", axis="y")
-        for container in ax.containers:
-            ax.bar_label(container, fmt='{:,.0f}', fontsize=9, rotation=0)
         plt.tight_layout()
         st.pyplot(fig)
         plt.close(fig)
@@ -567,7 +564,7 @@ if uploaded_file is not None:
         else:
             st.info("Aucune variable numérique à afficher")
 
-        st.subheader("📋 Statistiques (variables catégorielles)")
+        st.subheader("📋 Statistiques descriptives (variables catégorielles)")
         if len(categorical_cols) > 0:
             st.dataframe(df_company[categorical_cols].describe())
         else:
@@ -589,8 +586,6 @@ if uploaded_file is not None:
         ax.set_ylabel("Stock disponible")
         ax.set_title(f"Stock réel disponible par produit - Quart {last_round} - Entreprise {entreprise}")
         ax.ticklabel_format(style="plain", axis="y")
-        for container in ax.containers:
-            ax.bar_label(container, fmt='{:,.0f}', fontsize=9, rotation=0)
         plt.tight_layout()
         st.pyplot(fig)
         plt.close(fig)
