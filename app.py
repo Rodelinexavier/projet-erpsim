@@ -423,7 +423,7 @@ if uploaded_file is not None:
     with st.spinner("Chargement et agrégation des données..."):
         df = load_and_process_data(uploaded_file)
 
-    st.success("✅ Données chargées avec succès !")
+    st.success("✅ Chargement de données reussi !")
 
     st.markdown("---")
     st.header("🏢 Sélection de l'entreprise")
