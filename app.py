@@ -21,7 +21,7 @@ st.set_page_config(
     page_icon="🏢",
     layout="wide"
 )
-st.markdwon("""
+st.markdown("""
 Bienvenue dans cette application de prévision de la demande et d’aide à la décision. 
 Ce tableau de bord permet d’analyser les données ERPsim, d’estimer la demande future par produit et d’évaluer les indicateurs clés de pilotage, 
 notamment le stock disponible, la production estimée, le chiffre d’affaires prévisionnel et la marge brute. 
