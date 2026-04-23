@@ -142,9 +142,8 @@ def load_and_process_data(uploaded_file: str) -> pd.DataFrame:
         })
     )
 
-    # --------------------------------------------------------
     # Agrégation inventaire
-    # --------------------------------------------------------
+   
     inventory_product_col = "MATERIAL_CODE" if "MATERIAL_CODE" in inventaire.columns else None
 
     if inventory_product_col is not None:
@@ -167,9 +166,9 @@ def load_and_process_data(uploaded_file: str) -> pd.DataFrame:
             })
         )
 
-    # --------------------------------------------------------
+   
     # Fusion
-    # --------------------------------------------------------
+
     df = ventes_agg.merge(
         production_agg,
         on=["ENTREPRISE", "QUART_SIMULATION", "CODE_PRODUIT"],
@@ -357,10 +356,9 @@ def calculate_indicators(df_company: pd.DataFrame, pred_prod: pd.DataFrame) -> p
     )
     prix_moyen = prix_moyen[["CODE_PRODUIT", "PRIX_MOYEN_PREVISIONNEL"]]
 
-    # ============================================================
     # STOCK DISPONIBLE - Version simplifiée
     # On prend le stock initial du dernier quart pour chaque produit
-    # ============================================================
+    
     last_round = df_company["QUART_SIMULATION"].max()
     
     stock_prod = (
@@ -415,9 +413,9 @@ def calculate_indicators(df_company: pd.DataFrame, pred_prod: pd.DataFrame) -> p
     return indicateurs
 
 
-# ============================================================
+
 # INTERFACE PRINCIPALE
-# ============================================================
+
 
 uploaded_file = st.file_uploader("📁 Chargez les données", type=["xlsx"])
 
@@ -457,9 +455,9 @@ if uploaded_file is not None:
     with col3:
         st.metric("Enregistrements", f"{len(df_company)}")
 
-    # ============================================================
+   
     # ANALYSE EXPLORATOIRE
-    # ============================================================
+   
     st.markdown("---")
     st.header("📈 Analyse exploratoire")
 
@@ -569,9 +567,9 @@ if uploaded_file is not None:
         
         st.dataframe(stock_last_quarter.style.format({"STOCK_DISPONIBLE": "{:,.0f}"}))
 
-    # ============================================================
+    
     # MODELISATION
-    # ============================================================
+    
     st.markdown("---")
     st.header("🤖 Modélisation et prévisions")
 
