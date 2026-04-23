@@ -17,10 +17,17 @@ from sklearn.metrics import mean_absolute_error, r2_score
 # Configuration de la page
 # ------------------------------------------------------------
 st.set_page_config(
-    page_title="Prévision de la demande - Dashboard",
+    page_title="Prévision de la demande et de la production - Tableau de bord decisionnel",
     page_icon="🏢",
     layout="wide"
 )
+st.markdwon("""
+Bienvenue dans cette application de prévision de la demande et d’aide à la décision. 
+Ce tableau de bord permet d’analyser les données ERPsim, d’estimer la demande future par produit et d’évaluer les indicateurs clés de pilotage, 
+notamment le stock disponible, la production estimée, le chiffre d’affaires prévisionnel et la marge brute. 
+L’objectif est de fournir un support visuel et analytique pour améliorer les décisions de gestion dans un contexte manufacturier.
+""")
+st.markdown("---")
 
 pd.set_option("display.float_format", "{:.2f}".format)
 
