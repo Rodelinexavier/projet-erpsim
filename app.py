@@ -335,12 +335,11 @@ def train_and_predict(df_company: pd.DataFrame, model_choice: str):
 
 def calculate_indicators(df_company: pd.DataFrame, pred_prod: pd.DataFrame) -> pd.DataFrame:
     """
-    Calcule les indicateurs prévisionnels.
-    Utilise le STOCK DU DERNIER QUART (non recalculé).
+    Calcule les indicateurs prévisionnels avec stock réel par produit.
     """
-    # Prix moyen historique
     quantity_ref = "QUANTITY_DELIVERED" if "QUANTITY_DELIVERED" in df_company.columns else "DEMANDE"
 
+    # Prix moyen historique
     prix_moyen = (
         df_company.groupby("CODE_PRODUIT", as_index=False, observed=False)
         .agg({
@@ -356,16 +355,14 @@ def calculate_indicators(df_company: pd.DataFrame, pred_prod: pd.DataFrame) -> p
     )
     prix_moyen = prix_moyen[["CODE_PRODUIT", "PRIX_MOYEN_PREVISIONNEL"]]
 
-    # STOCK DISPONIBLE - Version simplifiée
-    # On prend le stock initial du dernier quart pour chaque produit
-    
+    # Stock réel du dernier quart
     last_round = df_company["QUART_SIMULATION"].max()
-    
+
     stock_prod = (
         df_company[df_company["QUART_SIMULATION"] == last_round]
-        .groupby("CODE_PRODUIT", as_index=False, observed=False)["STOCK_INITIAL"]
+        .groupby("CODE_PRODUIT", as_index=False, observed=False)["STOCK_REEL"]
         .first()
-        .rename(columns={"STOCK_INITIAL": "STOCK_DISPONIBLE"})
+        .rename(columns={"STOCK_REEL": "STOCK_DISPONIBLE"})
     )
 
     # Coût unitaire moyen
@@ -382,6 +379,7 @@ def calculate_indicators(df_company: pd.DataFrame, pred_prod: pd.DataFrame) -> p
         .rename(columns={"COUT_UNITAIRE": "COUT_UNITAIRE_MOYEN"})
     )
 
+    # Fusion
     indicateurs = (
         pred_prod
         .merge(stock_prod, on="CODE_PRODUIT", how="left")
@@ -394,21 +392,32 @@ def calculate_indicators(df_company: pd.DataFrame, pred_prod: pd.DataFrame) -> p
     indicateurs["PRIX_MOYEN_PREVISIONNEL"] = indicateurs["PRIX_MOYEN_PREVISIONNEL"].fillna(0)
     indicateurs["COUT_UNITAIRE_MOYEN"] = indicateurs["COUT_UNITAIRE_MOYEN"].fillna(0)
 
+    # Production estimée
     indicateurs["PRODUCTION_ESTIMEE"] = (
         indicateurs["DEMANDE_PREVISIONNELLE"] - indicateurs["STOCK_DISPONIBLE"]
     ).clip(lower=0)
 
+    # CA prévisionnel
     indicateurs["CA_PREVISIONNEL"] = (
         indicateurs["DEMANDE_PREVISIONNELLE"] * indicateurs["PRIX_MOYEN_PREVISIONNEL"]
     )
 
+    # Coût total prévisionnel
     indicateurs["COUT_TOTAL_PREVISIONNEL"] = (
         indicateurs["DEMANDE_PREVISIONNELLE"] * indicateurs["COUT_UNITAIRE_MOYEN"]
     )
 
+    # Marge brute
     indicateurs["MARGE_BRUTE_PREVISIONNELLE"] = (
         indicateurs["CA_PREVISIONNEL"] - indicateurs["COUT_TOTAL_PREVISIONNEL"]
     )
+
+    # Taux de couverture corrigé
+    indicateurs["TAUX_COUVERTURE_STOCK"] = np.where(
+        indicateurs["DEMANDE_PREVISIONNELLE"] != 0,
+        indicateurs["STOCK_DISPONIBLE"] / indicateurs["DEMANDE_PREVISIONNELLE"] * 100,
+        0
+    ).round(1)
 
     return indicateurs
 
