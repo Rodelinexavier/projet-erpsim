@@ -13,9 +13,9 @@ from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, r2_score
 
 
-# ------------------------------------------------------------
+
 # Configuration de la page
-# ------------------------------------------------------------
+
 st.set_page_config(
     page_title="Prévision de la demande - Dashboard",
     page_icon="📊",
@@ -28,9 +28,9 @@ st.title("📊 Prévision de la demande - Tableau de bord décisionnel")
 st.markdown("---")
 
 
-# ============================================================
+
 # CHARGEMENT ET PREPARATION DES DONNEES
-# ============================================================
+
 
 @st.cache_data
 def load_and_process_data(uploaded_file: str) -> pd.DataFrame:
@@ -51,9 +51,9 @@ def load_and_process_data(uploaded_file: str) -> pd.DataFrame:
     marche.columns = [c.strip().upper() for c in marche.columns]
     marketing.columns = [c.strip().upper() for c in marketing.columns]
 
-    # --------------------------------------------------------
+   
     # Agrégation ventes
-    # --------------------------------------------------------
+    
     quantity_col = "QUANTITY" if "QUANTITY" in ventes.columns else "QUANTITY_DELIVERED"
 
     ventes_group_cols = [
@@ -89,9 +89,9 @@ def load_and_process_data(uploaded_file: str) -> pd.DataFrame:
         })
     )
 
-    # --------------------------------------------------------
+  
     # Agrégation production
-    # --------------------------------------------------------
+    
     production_agg = (
         production.groupby(["COMPANY_CODE", "SIM_ROUND", "MATERIAL_CODE"], as_index=False)["YIELD"]
         .sum()
@@ -103,9 +103,9 @@ def load_and_process_data(uploaded_file: str) -> pd.DataFrame:
         })
     )
 
-    # --------------------------------------------------------
+    
     # Agrégation marché
-    # --------------------------------------------------------
+    
     marche_company_col = "COMPANY_CODE" if "COMPANY_CODE" in marche.columns else None
     if marche_company_col is not None:
         marche_agg = (
@@ -129,9 +129,9 @@ def load_and_process_data(uploaded_file: str) -> pd.DataFrame:
             })
         )
 
-    # --------------------------------------------------------
+   
     # Agrégation marketing
-    # --------------------------------------------------------
+    
     marketing_agg = (
         marketing.groupby(["SIM_ROUND", "SALES_ORGANIZATION"], as_index=False)["AMOUNT"]
         .sum()
@@ -483,7 +483,6 @@ if uploaded_file is not None:
         ax.legend(title="Produit", loc="upper left", bbox_to_anchor=(1, 0.5))
         ax.ticklabel_format(style="plain", axis="y")
         
-        # PAS DE CHIFFRES SUR CE GRAPHIQUE (barres trop nombreuses)
         
         plt.tight_layout()
         st.pyplot(fig)
@@ -508,7 +507,7 @@ if uploaded_file is not None:
         ax.legend(title="Produit", loc="upper left", bbox_to_anchor=(1, 0.5))
         ax.ticklabel_format(style="plain", axis="y")
         
-        # CHIFFRES SUR LES BARRES
+      
         for container in ax.containers:
             ax.bar_label(container, fmt='{:,.0f}', fontsize=9, rotation=0)
         
@@ -719,7 +718,6 @@ if uploaded_file is not None:
         ax.legend(loc="upper left", bbox_to_anchor=(1, 0.5))
         ax.ticklabel_format(style="plain", axis="y")
         
-        # CHIFFRES SUR TOUTES LES BARRES
         for bars in [bars1, bars2, bars3]:
             for bar in bars:
                 height = bar.get_height()
@@ -764,8 +762,7 @@ if uploaded_file is not None:
         ax2.legend()
         ax2.grid(True, alpha=0.3)
         ax2.ticklabel_format(style="plain", axis="y")
-        
-        # CHIFFRES SUR LES POINTS
+    
         for _, row in temp_data.iterrows():
             ax2.annotate(f'{int(row["DEMANDE"]):,}', 
                         (row["QUART_SIMULATION"], row["DEMANDE"]),
