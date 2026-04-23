@@ -18,7 +18,7 @@ from sklearn.metrics import mean_absolute_error, r2_score
 
 st.set_page_config(
     page_title="Prévision de la demande - Dashboard",
-    page_icon="📊",
+    page_icon="🏢",
     layout="wide"
 )
 
