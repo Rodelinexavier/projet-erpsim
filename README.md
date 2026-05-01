@@ -13,6 +13,8 @@ de prévoir la demande par produit,
 d’estimer les besoins de production,
 d’évaluer les indicateurs clés (stock, chiffre d’affaires, marge),
 de comparer les performances par entreprise.
+
+
 ⚙️ Méthodologie
 Préparation et agrégation des données ERPsim (ventes, production, stock, marketing)
 Feature engineering (lags, variables économiques, tendance)
@@ -22,6 +24,9 @@ Random Forest
 Gradient Boosting
 Évaluation des performances (MAE, R²)
 Génération de prévisions et d’indicateurs décisionnels
+
+
+
 📈 Application
 
 Une application Streamlit permet de :
@@ -30,6 +35,8 @@ visualiser les données par produit et par entreprise,
 lancer les modèles de prévision,
 analyser les résultats via des tableaux et graphiques interactifs,
 exporter les résultats.
+
+
 🧠 Apports
 Mise en œuvre concrète de modèles prédictifs en contexte opérationnel
 Intégration de la dimension décisionnelle (production, stock, rentabilité)
@@ -39,6 +46,8 @@ Python (Pandas, NumPy)
 Scikit-learn
 Matplotlib
 Streamlit
+
+
 📂 Données
 
 Les données proviennent de la simulation ERPsim (HEC Montréal).
