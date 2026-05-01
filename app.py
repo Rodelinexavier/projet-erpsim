@@ -13,9 +13,9 @@ from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, r2_score
 
 
-# ------------------------------------------------------------
+
 # Configuration de la page
-# ------------------------------------------------------------
+
 st.set_page_config(
     page_title="Prévision de la demande et de la production - Tableau de bord decisionnel",
     page_icon="🏢",
@@ -57,9 +57,8 @@ def load_and_process_data(uploaded_file) -> pd.DataFrame:
     marche.columns = [c.strip().upper() for c in marche.columns]
     marketing.columns = [c.strip().upper() for c in marketing.columns]
 
-    # --------------------------------------------------------
     # Agrégation ventes
-    # --------------------------------------------------------
+   
     quantity_col = "QUANTITY" if "QUANTITY" in ventes.columns else "QUANTITY_DELIVERED"
 
     ventes_group_cols = [
@@ -149,11 +148,11 @@ def load_and_process_data(uploaded_file) -> pd.DataFrame:
         })
     )
 
-    # --------------------------------------------------------
+   
     # Agrégation inventaire
     # Si MATERIAL_CODE existe, on prend un stock par produit.
     # Sinon, on conserve un stock global par quart.
-    # --------------------------------------------------------
+ 
     inventory_product_col = "MATERIAL_CODE" if "MATERIAL_CODE" in inventaire.columns else None
 
     if inventory_product_col is not None:
@@ -176,9 +175,9 @@ def load_and_process_data(uploaded_file) -> pd.DataFrame:
             })
         )
 
-    # --------------------------------------------------------
+ 
     # Fusion
-    # --------------------------------------------------------
+   
     df = ventes_agg.merge(
         production_agg,
         on=["ENTREPRISE", "QUART_SIMULATION", "CODE_PRODUIT"],
@@ -458,9 +457,8 @@ def calculate_indicators(df_company: pd.DataFrame, pred_prod: pd.DataFrame) -> p
     return indicateurs
 
 
-# ============================================================
 # INTERFACE PRINCIPALE
-# ============================================================
+
 
 uploaded_file = st.file_uploader("📁 Chargez les données", type=["xlsx"])
 
@@ -500,9 +498,8 @@ if uploaded_file is not None:
     with col3:
         st.metric("Enregistrements", f"{len(df_company)}")
 
-    # ============================================================
     # ANALYSE EXPLORATOIRE
-    # ============================================================
+    
     st.markdown("---")
     st.header("📈 Analyse exploratoire")
 
@@ -601,9 +598,8 @@ if uploaded_file is not None:
 
         st.dataframe(stock_last_quarter.style.format({"STOCK_DISPONIBLE": "{:,.0f}"}))
 
-    # ============================================================
     # MODELISATION
-    # ============================================================
+   
     st.markdown("---")
     st.header("🤖 Modélisation et prévisions")
 
