@@ -17,7 +17,8 @@ de comparer les performances par entreprise.
 
 ⚙️ Méthodologie
 Préparation et agrégation des données ERPsim (ventes, production, stock, marketing)
-Feature engineering (lags, variables économiques, tendance)
+Feature engineering (lags, variables économiques, tendance).
+
 Entraînement de modèles de régression :
 Ridge
 Random Forest
@@ -35,6 +36,8 @@ visualiser les données par produit et par entreprise,
 lancer les modèles de prévision,
 analyser les résultats via des tableaux et graphiques interactifs,
 exporter les résultats.
+
+Application : https://erpsim-prevision.streamlit.app/
 
 
 🧠 Apports
