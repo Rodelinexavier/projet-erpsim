@@ -42,9 +42,12 @@ Application : https://erpsim-prevision.streamlit.app/
 
 🧠 Apports
 Mise en œuvre concrète de modèles prédictifs en contexte opérationnel
-Intégration de la dimension décisionnelle (production, stock, rentabilité)
-Approche data-driven du pilotage de la performance
-🛠️ Technologies utilisées
+Intégration de la dimension décisionnelle (production, stock, rentabilité).
+
+
+Approche data-driven du pilotage de la performance.
+
+🛠️ Technologies utilisées:
 Python (Pandas, NumPy)
 Scikit-learn
 Matplotlib
