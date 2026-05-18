@@ -30,9 +30,7 @@ Génération de prévisions et d’indicateurs décisionnels
 
 📈 Application
 
-Une application Streamlit permet de :
-
-visualiser les données par produit et par entreprise,
+Une application Streamlit permet de visualiser les données par produit et par entreprise,
 lancer les modèles de prévision,
 analyser les résultats via des tableaux et graphiques interactifs,
 exporter les résultats.
